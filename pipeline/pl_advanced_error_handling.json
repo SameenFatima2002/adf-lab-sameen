@@ -57,7 +57,11 @@
 									"referenceName": "ds_source_csv",
 									"type": "DatasetReference",
 									"parameters": {
-										"filename": "@item().fileName"
+										"filename": "@item().fileName",
+										"containerName": {
+											"value": "inputdata",
+											"type": "Expression"
+										}
 									}
 								}
 							],
@@ -72,7 +76,7 @@
 							]
 						},
 						{
-							"name": "IncrementSuccess",
+							"name": "StoreTempCount",
 							"type": "SetVariable",
 							"dependsOn": [
 								{
@@ -88,8 +92,11 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"variableName": "successCount",
-								"value": "@string(add(int(variables('successCount')),1))"
+								"variableName": "tempCount",
+								"value": {
+									"value": "@string(add(int(variables('successCount')),1))",
+									"type": "Expression"
+								}
 							}
 						},
 						{
@@ -110,7 +117,31 @@
 							"userProperties": [],
 							"typeProperties": {
 								"variableName": "errorMessage",
-								"value": "@activity('CopyFile').error.message"
+								"value": {
+									"value": "@activity('CopyFile').error.message",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "IncrementSuccess",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "StoreTempCount",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "successCount",
+								"value": "@variables('tempCount')"
 							}
 						}
 					]
@@ -179,6 +210,10 @@
 				"defaultValue": "0"
 			},
 			"failureCount": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"tempCount": {
 				"type": "String",
 				"defaultValue": "0"
 			}
