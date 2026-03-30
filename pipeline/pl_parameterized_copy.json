@@ -1,0 +1,92 @@
+{
+	"name": "pl_parameterized_copy",
+	"properties": {
+		"activities": [
+			{
+				"name": "CopyDynamicData",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_source_csv",
+						"type": "DatasetReference",
+						"parameters": {
+							"filename": {
+								"value": "@pipeline().parameters.sourceFileName",
+								"type": "Expression"
+							},
+							"containerName": {
+								"value": "@pipeline().parameters.sourceContainer",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_sink_sql",
+						"type": "DatasetReference",
+						"parameters": {
+							"tableName": {
+								"value": "@pipeline().parameters.sinkTableName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"sourceContainer": {
+				"type": "string",
+				"defaultValue": "inputdata"
+			},
+			"sourceFileName": {
+				"type": "string",
+				"defaultValue": "staff.csv"
+			},
+			"sinkTableName": {
+				"type": "string",
+				"defaultValue": "staff"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-03-29T18:22:33Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

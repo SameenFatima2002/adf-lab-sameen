@@ -1,0 +1,9 @@
+{
+	"name": "sameen",
+	"location": "eastasia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "7128f06a-cfe1-45d8-a16c-1dbe6c3f12e6",
+		"tenantId": "2dc759ac-e00f-4eb1-ad28-e6ac0ece0d26"
+	}
+}

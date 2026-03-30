@@ -1,0 +1,130 @@
+{
+	"name": "pl_rest_api_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "CopyAPIData",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "$['id']"
+								},
+								"sink": {
+									"name": "ID",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['name']"
+								},
+								"sink": {
+									"name": "Name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['username']"
+								},
+								"sink": {
+									"name": "Username",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['email']"
+								},
+								"sink": {
+									"name": "Email",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['address']['city']"
+								},
+								"sink": {
+									"name": "City",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['phone']"
+								},
+								"sink": {
+									"name": "Phone",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['website']"
+								},
+								"sink": {
+									"name": "Website",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['company']['name']"
+								},
+								"sink": {
+									"name": "Company",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": ""
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_rest_api",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_api_users_sql",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-03-29T23:43:31Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

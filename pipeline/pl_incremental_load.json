@@ -1,0 +1,179 @@
+{
+	"name": "pl_incremental_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "LookupOldWatermark",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT WatermarkValue\n                    FROM dbo.watermark_table\n                    WHERE TableName = 'students_source'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_watermark",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "LookupNewWatermark",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "LookupOldWatermark",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT MAX(LastModified)\n                    AS NewWatermark\n                    FROM dbo.students_source",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_students_source",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "CopyNewData",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "LookupNewWatermark",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('SELECT * FROM dbo.students_source WHERE LastModified > ''',\nactivity('LookupOldWatermark').output.firstRow.WatermarkValue,\n''' AND LastModified <= ''',\nactivity('LookupNewWatermark').output.firstRow.NewWatermark,\n'''')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"ID"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_students_source",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_students_destination",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "UpdateWatermark",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CopyNewData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_UpdateWatermark]",
+					"storedProcedureParameters": {
+						"tableName": {
+							"value": "students_source",
+							"type": "String"
+						},
+						"newWatermark": {
+							"value": {
+								"value": "@activity('LookupNewWatermark').output.firstRow.NewWatermark",
+								"type": "Expression"
+							},
+							"type": "Datetime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"variables": {
+			"oldWatermark": {
+				"type": "String"
+			},
+			"newWatermark": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-03-29T23:43:30Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
