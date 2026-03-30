@@ -141,7 +141,10 @@
 							"userProperties": [],
 							"typeProperties": {
 								"variableName": "successCount",
-								"value": "@variables('tempCount')"
+								"value": {
+									"value": "@variables('tempCount')",
+									"type": "Expression"
+								}
 							}
 						}
 					]
