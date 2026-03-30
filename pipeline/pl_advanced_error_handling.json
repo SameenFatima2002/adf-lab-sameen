@@ -1,0 +1,188 @@
+{
+	"name": "pl_advanced_error_handling",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEachFile",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@json('[{\"fileName\":\"student.csv\",\"tableName\":\"student\"},{\"fileName\":\"teachers.csv\",\"tableName\":\"teachers\"},{\"fileName\":\"staff.csv\",\"tableName\":\"staff\"}]')",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "CopyFile",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.00:10:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_source_csv",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": "@item().fileName"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_sink_sql",
+									"type": "DatasetReference",
+									"parameters": {
+										"tableName": "@item().tableName"
+									}
+								}
+							]
+						},
+						{
+							"name": "IncrementSuccess",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "CopyFile",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "successCount",
+								"value": "@string(add(int(variables('successCount')),1))"
+							}
+						},
+						{
+							"name": "CaptureError",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "CopyFile",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "errorMessage",
+								"value": "@activity('CopyFile').error.message"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEachFile",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(int(variables('failureCount')), 0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "setvFalse",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "errorMessage",
+								"value": "All files processed successfully"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "setvTrue",
+							"description": "",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "errorMessage",
+								"value": " Pipeline completed with failures"
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"errorMessage": {
+				"type": "String"
+			},
+			"successCount": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"failureCount": {
+				"type": "String",
+				"defaultValue": "0"
+			}
+		},
+		"annotations": []
+	}
+}
